@@ -12,7 +12,10 @@ pub const EPSILON: f64 = 0.0001;
 pub mod docs;
 pub mod features;
 
-pub use features::linalg::{point::Point, vector::Vector};
+pub use features::linalg::{
+    point::{Point, Point3},
+    vector::{Vector, Vector3},
+};
 
 /// A scalar type in the context of this library, following `lina`.
 /// This is implemented for at least these types:

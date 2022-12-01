@@ -7,7 +7,7 @@ use bytemuck::{Pod, Zeroable};
 
 use crate::{Float, Point, Scalar};
 
-use super::tuple::Tuple;
+use super::tuple::{HasX, HasY, HasZ, Tuple};
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 #[repr(transparent)]
@@ -75,6 +75,33 @@ impl<T: Scalar, const N: usize> Vector<T, N> {
     {
         *self = *self / self.magnitude();
     }
+    /// Returns a unit vector in x direction.
+    pub fn unit_x() -> Self
+    where
+        Self: HasX<Scalar = T>,
+    {
+        let mut x = Self::zero();
+        *x.x_mut() = T::one();
+        x
+    }
+    /// Returns a unit vector in y direction.
+    pub fn unit_y() -> Self
+    where
+        Self: HasY<Scalar = T>,
+    {
+        let mut y = Self::zero();
+        *y.y_mut() = T::one();
+        y
+    }
+    /// Returns a unit vector in z direction.
+    pub fn unit_z() -> Self
+    where
+        Self: HasZ<Scalar = T>,
+    {
+        let mut z = Self::zero();
+        *z.z_mut() = T::one();
+        z
+    }
     /// Returns the dot product of this vector and another.
     pub fn dot(&self, rhs: &Vector<T, N>) -> T {
         let mut prod = T::zero();
@@ -83,9 +110,11 @@ impl<T: Scalar, const N: usize> Vector<T, N> {
         }
         prod
     }
+    /// Applies the given function to the `Vector`.
     pub fn map<R: Scalar, F: FnMut(T) -> R>(self, f: F) -> Vector<R, N> {
         Vector(Tuple(self.0 .0.map(f)))
     }
+    /// Zip another 'Vector' and then applies the given function.
     pub fn zip_map<U, R, F>(self, other: Vector<U, N>, mut f: F) -> Vector<R, N>
     where
         U: Scalar,
@@ -257,6 +286,20 @@ impl<T: Scalar, const N: usize> From<[T; N]> for Vector<T, N> {
 impl<T: Scalar, const N: usize> From<Vector<T, N>> for [T; N] {
     fn from(src: Vector<T, N>) -> Self {
         src.0 .0
+    }
+}
+// Construct a homogeneous coordinate `Vector<T,4>` (alias `Point3<T>`)
+// from an array of size 3.
+impl<T: Scalar> From<[T; 3]> for Vector<T, 4> {
+    fn from(src: [T; 3]) -> Self {
+        let [x, y, z] = src;
+        Self::new(x, y, z)
+    }
+}
+// Construct an array with a size of 3 (`[x,y,z]`) from `Vector3`
+impl<T: Scalar> From<Vector<T, 4>> for [T; 3] {
+    fn from(src: Vector<T, 4>) -> Self {
+        [src.x, src.y, src.z]
     }
 }
 // Implementation of `AsRef` for `Vector` to borrow the inner array.

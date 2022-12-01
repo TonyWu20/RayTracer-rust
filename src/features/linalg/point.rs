@@ -138,6 +138,20 @@ impl<T: Scalar, const N: usize> From<Point<T, N>> for [T; N] {
         src.0 .0
     }
 }
+// Construct a homogeneous coordinate `Point<T,4>` (alias `Point3<T>`)
+// from an array of size 3.
+impl<T: Scalar> From<[T; 3]> for Point<T, 4> {
+    fn from(src: [T; 3]) -> Self {
+        let [x, y, z] = src;
+        Self::new(x, y, z)
+    }
+}
+// Construct an array with a size of 3 (`[x,y,z]`) from `Point3`
+impl<T: Scalar> From<Point<T, 4>> for [T; 3] {
+    fn from(src: Point<T, 4>) -> Self {
+        [src.x, src.y, src.z]
+    }
+}
 // Implementation of `AsRef` for `Point` to borrow the inner array.
 impl<T: Scalar, const N: usize> AsRef<[T; N]> for Point<T, N> {
     fn as_ref(&self) -> &[T; N] {
