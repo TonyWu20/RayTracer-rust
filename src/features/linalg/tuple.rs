@@ -5,7 +5,7 @@
 use bytemuck::{Pod, Zeroable};
 use std::ops::{Deref, DerefMut, Index, IndexMut};
 
-use crate::Scalar;
+use crate::{Point, Scalar, Vector};
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 pub struct Tuple<T: Scalar, const N: usize>(pub(crate) [T; N]);
@@ -43,6 +43,24 @@ unsafe impl<T: Pod> Pod for View4<T> {}
 // `Deref` and `DerefMut` impls to enable `.x` like field access.
 // Due to the context of this lib, we only deal with 3D homogeneous points or vectors,
 // therefore, we just need to implement the traits for `Tuple<T,4>`.
+macro_rules! impl_view_deref {
+    ($ty:ident, $n:expr, $view_ty:ident) => {
+        impl<T: Scalar> Deref for $ty<T, $n> {
+            type Target = $view_ty<T>;
+            fn deref(&self) -> &Self::Target {
+                bytemuck::cast_ref(self)
+            }
+        }
+        impl<T: Scalar> DerefMut for $ty<T, $n> {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                bytemuck::cast_mut(self)
+            }
+        }
+    };
+}
+impl_view_deref!(Vector, 4, View4);
+impl_view_deref!(Point, 4, View4);
+
 impl<T: Scalar> Deref for Tuple<T, 4> {
     type Target = View4<T>;
 
@@ -102,6 +120,14 @@ impl_has_axis!(Tuple, 4, HasX, 0, x, x_mut);
 impl_has_axis!(Tuple, 4, HasY, 1, y, y_mut);
 impl_has_axis!(Tuple, 4, HasZ, 2, z, z_mut);
 impl_has_axis!(Tuple, 4, HasW, 3, w, w_mut);
+impl_has_axis!(Point, 4, HasX, 0, x, x_mut);
+impl_has_axis!(Point, 4, HasY, 1, y, y_mut);
+impl_has_axis!(Point, 4, HasZ, 2, z, z_mut);
+impl_has_axis!(Point, 4, HasW, 3, w, w_mut);
+impl_has_axis!(Vector, 4, HasX, 0, x, x_mut);
+impl_has_axis!(Vector, 4, HasY, 1, y, y_mut);
+impl_has_axis!(Vector, 4, HasZ, 2, z, z_mut);
+impl_has_axis!(Vector, 4, HasW, 3, w, w_mut);
 
 impl<T: Scalar, const N: usize> Index<usize> for Tuple<T, N> {
     type Output = T;

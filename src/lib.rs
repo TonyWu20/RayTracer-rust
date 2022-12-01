@@ -5,10 +5,11 @@ use std::{
     ops::{AddAssign, DivAssign, MulAssign, SubAssign},
 };
 
-use bytemuck::{Pod};
+use bytemuck::Pod;
 use num_traits::Num;
 pub const EPSILON: f64 = 0.0001;
 
+pub mod docs;
 pub mod features;
 
 pub use features::linalg::{point::Point, vector::Vector};
