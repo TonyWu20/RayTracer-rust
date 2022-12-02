@@ -3,7 +3,13 @@
 //! Due to the context of this lib, we only deal with 3D homogeneous points or vectors,
 //! therefore, we just need to implement the traits for `Tuple<T,4>`.
 use bytemuck::{Pod, Zeroable};
-use std::ops::{Deref, DerefMut, Index, IndexMut};
+use std::{
+    array,
+    ops::{
+        Add, AddAssign, Deref, DerefMut, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub,
+        SubAssign,
+    },
+};
 
 use crate::{Point, Scalar, Vector};
 
@@ -164,5 +170,81 @@ impl<T: Scalar, const N: usize> AsRef<[T; N]> for Tuple<T, N> {
 impl<T: Scalar, const N: usize> AsMut<[T; N]> for Tuple<T, N> {
     fn as_mut(&mut self) -> &mut [T; N] {
         &mut self.0
+    }
+}
+
+impl<T: Scalar, const N: usize> Add for Tuple<T, N> {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self(array::from_fn(|i| self[i] + rhs[i]))
+    }
+}
+
+impl<T: Scalar, const N: usize> AddAssign for Tuple<T, N> {
+    fn add_assign(&mut self, rhs: Self) {
+        for (lhs, rhs) in IntoIterator::into_iter(&mut self.0).zip(rhs.0) {
+            *lhs += rhs
+        }
+    }
+}
+
+impl<T: Scalar, const N: usize> Sub for Tuple<T, N> {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self(array::from_fn(|i| self[i] - rhs[i]))
+    }
+}
+
+impl<T: Scalar, const N: usize> SubAssign for Tuple<T, N> {
+    fn sub_assign(&mut self, rhs: Self) {
+        for (lhs, rhs) in IntoIterator::into_iter(&mut self.0).zip(rhs.0) {
+            *lhs -= rhs
+        }
+    }
+}
+impl<T: Scalar + Neg, const N: usize> Neg for Tuple<T, N>
+where
+    <T as Neg>::Output: Scalar,
+{
+    type Output = Tuple<<T as Neg>::Output, N>;
+
+    fn neg(self) -> Self::Output {
+        let Self(t) = self;
+        Tuple(t.map(|c| -c))
+    }
+}
+/// Scalar multipliation: `tuple` * scalar`.
+impl<T: Scalar, const N: usize> Mul<T> for Tuple<T, N> {
+    type Output = Tuple<T, N>;
+    fn mul(self, rhs: T) -> Self::Output {
+        let Self(t) = self;
+        Tuple(t.map(|c| c * rhs))
+    }
+}
+/// Scalar multipliation: `Tuple *= scalar`.
+impl<T: Scalar, const N: usize> MulAssign<T> for Tuple<T, N> {
+    fn mul_assign(&mut self, rhs: T) {
+        let Self(t) = self;
+        for c in t {
+            *c *= rhs;
+        }
+    }
+}
+/// Scalar division: `Tuple / scalar`.
+impl<T: Scalar, const N: usize> Div<T> for Tuple<T, N> {
+    type Output = Tuple<T, N>;
+
+    fn div(self, rhs: T) -> Self::Output {
+        Tuple(self.0.map(|c| c / rhs))
+    }
+}
+/// Scalar division: `Tuple /= scalar`.
+impl<T: Scalar, const N: usize> DivAssign<T> for Tuple<T, N> {
+    fn div_assign(&mut self, rhs: T) {
+        for c in &mut self.0 {
+            *c /= rhs;
+        }
     }
 }
