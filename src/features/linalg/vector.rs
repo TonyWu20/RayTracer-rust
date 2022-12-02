@@ -73,7 +73,7 @@ impl<T: Scalar, const N: usize> Vector<T, N> {
     where
         T: Float,
     {
-        *self = *self / self.magnitude();
+        *self /= self.magnitude();
     }
     /// Returns a unit vector in x direction.
     pub fn unit_x() -> Self
@@ -167,15 +167,17 @@ impl<T: Scalar, const N: usize> Default for Vector<T, N> {
 impl<T: Scalar, const N: usize> Add<Vector<T, N>> for Vector<T, N> {
     type Output = Vector<T, N>;
     fn add(self, rhs: Vector<T, N>) -> Self::Output {
-        self.zip_map(rhs, |l, r| l + r)
+        let Self(tv1) = self;
+        let Self(tv2) = rhs;
+        Self(tv1 + tv2)
     }
 }
 
 impl<T: Scalar, const N: usize> AddAssign<Vector<T, N>> for Vector<T, N> {
     fn add_assign(&mut self, rhs: Vector<T, N>) {
-        for (lhs, rhs) in IntoIterator::into_iter(&mut self.0 .0).zip(rhs.0 .0) {
-            *lhs += rhs;
-        }
+        let Self(tv1) = self;
+        let Self(tv2) = rhs;
+        *tv1 += tv2;
     }
 }
 
@@ -183,15 +185,17 @@ impl<T: Scalar, const N: usize> Sub<Self> for Vector<T, N> {
     type Output = Vector<T, N>;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        self.zip_map(rhs, |l, r| l - r)
+        let Self(tv1) = self;
+        let Self(tv2) = rhs;
+        Self(tv1 - tv2)
     }
 }
 
 impl<T: Scalar, const N: usize> SubAssign<Vector<T, N>> for Vector<T, N> {
     fn sub_assign(&mut self, rhs: Vector<T, N>) {
-        for (lhs, rhs) in IntoIterator::into_iter(&mut self.0 .0).zip(rhs.0 .0) {
-            *lhs -= rhs;
-        }
+        let Self(tv1) = self;
+        let Self(tv2) = rhs;
+        *tv1 -= tv2;
     }
 }
 
@@ -202,7 +206,8 @@ where
     type Output = Vector<<T as Neg>::Output, N>;
 
     fn neg(self) -> Self::Output {
-        self.map(|c| -c)
+        let Self(tv) = self;
+        Vector(-tv)
     }
 }
 
@@ -210,7 +215,8 @@ where
 impl<T: Scalar, const N: usize> Mul<T> for Vector<T, N> {
     type Output = Vector<T, N>;
     fn mul(self, rhs: T) -> Self::Output {
-        self.map(|c| c * rhs.clone())
+        let Self(tv) = self;
+        Self(tv * rhs)
     }
 }
 // Scalar multiplication: `scalar * vector`. Unfortunately, due to Rust's orphan
@@ -234,9 +240,8 @@ impl_scalar_mul!(f32, f64, u8, u16, u32, u64, u128, i8, i16, i32, i64, i128);
 /// Scalar multipliation: `vector *= scalar`.
 impl<T: Scalar, const N: usize> MulAssign<T> for Vector<T, N> {
     fn mul_assign(&mut self, rhs: T) {
-        for c in &mut self.0 .0 {
-            *c *= rhs.clone();
-        }
+        let Self(tv) = self;
+        *tv *= rhs;
     }
 }
 
@@ -244,16 +249,15 @@ impl<T: Scalar, const N: usize> MulAssign<T> for Vector<T, N> {
 impl<T: Scalar, const N: usize> Div<T> for Vector<T, N> {
     type Output = Vector<T, N>;
     fn div(self, rhs: T) -> Self::Output {
-        self.map(|c| c / rhs.clone())
+        Self(self.0 / rhs)
     }
 }
 
 /// Scalar division: `vector /= scalar`.
 impl<T: Scalar, const N: usize> DivAssign<T> for Vector<T, N> {
     fn div_assign(&mut self, rhs: T) {
-        for c in &mut self.0 .0 {
-            *c /= rhs;
-        }
+        let Self(tv) = self;
+        *tv /= rhs;
     }
 }
 impl<T: Scalar, const N: usize> std::iter::Sum<Self> for Vector<T, N> {
