@@ -51,9 +51,11 @@ mod test {
     }
     #[test]
     fn add_tuples() {
-        let a1 = Point::from([3, -2, 5]);
+        let mut a1 = Point::from([3, -2, 5]);
         let a2 = Vector::from([-2, 3, 1]);
         assert_eq!(a1 + a2, Point::<i32, 4>::from([1, 1, 6]));
+        a1 += a2;
+        assert_eq!(a1, Point::<i32, 4>::from([1, 1, 6]));
     }
     #[test]
     fn subtracting_two_points() {
