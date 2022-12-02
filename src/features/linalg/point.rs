@@ -75,15 +75,19 @@ impl<T: Scalar, const N: usize> Default for Point<T, N> {
 impl<T: Scalar, const N: usize> Add<Vector<T, N>> for Point<T, N> {
     type Output = Self;
     fn add(self, rhs: Vector<T, N>) -> Self::Output {
-        Self(Tuple(array::from_fn(|i| self[i] + rhs[i])))
+        // Semantically equivalent to `self.0 + rhs.0`
+        // But easier to understand.
+        let Self(tp) = self;
+        let Vector::<T, N>(tv) = rhs;
+        Self(tp + tv)
     }
 }
 
 impl<T: Scalar, const N: usize> AddAssign<Vector<T, N>> for Point<T, N> {
     fn add_assign(&mut self, rhs: Vector<T, N>) {
-        for (lhs, rhs) in IntoIterator::into_iter(&mut self.0 .0).zip(rhs.0 .0) {
-            *lhs += rhs;
-        }
+        let Self(tp) = self;
+        let Vector::<T, N>(tv) = rhs;
+        *tp += tv;
     }
 }
 
@@ -92,23 +96,29 @@ impl<T: Scalar, const N: usize> Sub<Self> for Point<T, N> {
     type Output = Vector<T, N>;
 
     fn sub(self, rhs: Point<T, N>) -> Self::Output {
-        Vector(Tuple(array::from_fn(|i| self[i] - rhs[i])))
+        let Self(tp1) = self;
+        let Self(tp2) = rhs;
+        Vector(tp1 - tp2)
     }
 }
 
-/// Substract a `Vector` from `Point` = translated `Point`
+/**
+Substract a `Vector` from `Point` = translated `Point`
+*/
 impl<T: Scalar, const N: usize> Sub<Vector<T, N>> for Point<T, N> {
     type Output = Self;
     fn sub(self, rhs: Vector<T, N>) -> Self::Output {
-        Self(Tuple(array::from_fn(|i| self[i] - rhs[i])))
+        let Self(tp) = self;
+        let Vector::<T, N>(tv) = rhs;
+        Self(tp - tv)
     }
 }
 
 impl<T: Scalar, const N: usize> SubAssign<Vector<T, N>> for Point<T, N> {
     fn sub_assign(&mut self, rhs: Vector<T, N>) {
-        for (lhs, rhs) in IntoIterator::into_iter(&mut self.0 .0).zip(rhs.0 .0) {
-            *lhs -= rhs;
-        }
+        let Self(tp) = self;
+        let Vector::<T, N>(tv) = rhs;
+        *tp -= tv;
     }
 }
 
