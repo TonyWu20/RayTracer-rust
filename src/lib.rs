@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-
 use std::{
     fmt::Debug,
     ops::{AddAssign, DivAssign, MulAssign, SubAssign},
@@ -8,6 +7,8 @@ use std::{
 use bytemuck::Pod;
 use num_traits::Num;
 pub const EPSILON: f64 = 0.0001;
+
+extern crate approx;
 
 pub mod docs;
 pub mod features;
