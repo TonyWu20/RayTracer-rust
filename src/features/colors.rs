@@ -19,6 +19,8 @@ impl<T: Float> Color<T> {
 #[cfg(test)]
 mod test {
 
+    use approx::assert_relative_eq;
+
     use super::Color;
 
     #[test]
