@@ -1,5 +1,5 @@
 pub(crate) mod point;
-mod tuple;
+pub mod tuple;
 pub(crate) mod vector;
 
 /// Tests in Chapter 1.

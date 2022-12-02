@@ -1,7 +1,4 @@
-use std::{
-    array,
-    ops::{Add, AddAssign, Index, IndexMut, Sub, SubAssign},
-};
+use std::ops::{Add, AddAssign, Index, IndexMut, Sub, SubAssign};
 
 use bytemuck::{Pod, Zeroable};
 
