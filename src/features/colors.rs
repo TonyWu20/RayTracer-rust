@@ -6,21 +6,6 @@ use bytemuck::{Pod, Zeroable};
 
 use super::linalg::tuple::Tuple;
 
-#[cfg(test)]
-mod test {
-
-    use approx::assert_relative_eq;
-
-    use super::Color;
-
-    #[test]
-    fn mul_colors() {
-        let c1 = Color::new(1.0, 0.2, 0.4);
-        let c2 = Color::new(0.9, 1.0, 0.1);
-        assert_relative_eq!(c1 * c2, Color::new(0.9, 0.2, 0.04));
-    }
-}
-
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 #[repr(transparent)]
 pub struct Color<T: Scalar>(pub(crate) Tuple<T, 3>);
