@@ -1,21 +1,43 @@
-use std::{error::Error, fmt::Display};
+use std::{
+    error::Error,
+    fmt::{Debug, Display},
+    marker::PhantomData,
+};
 
-use approx::AbsDiffEq;
+use crate::Scalar;
 
 use super::colors::Color;
 
 pub mod ppm_canvas;
 
-#[derive(Debug, Clone, PartialEq)]
-/// A canvas defined with `W` (width) and `H` (height).
-pub struct Canvas<const W: usize, const H: usize> {
-    pixels: [[Color<f64>; W]; H],
+fn dimension<const W: usize, const H: usize>() -> usize {
+    W * H
 }
 
-impl<const W: usize, const H: usize> Default for Canvas<W, H> {
+#[derive(Debug, Clone, PartialEq, Eq)]
+/// A canvas defined with `W` (width) and `H` (height).
+pub struct Canvas<const W: usize, const H: usize, T: Scalar, F: CanvasFormat> {
+    pixels: Vec<Color<T>>,
+    _format: PhantomData<F>,
+}
+#[derive(Debug)]
+pub struct Plain;
+
+pub trait CanvasFormat: Debug {}
+impl CanvasFormat for Plain {}
+
+pub type RawCanvas<const W: usize, const H: usize, T> = Canvas<W, H, T, Plain>;
+
+impl<const W: usize, const H: usize, T: Scalar, F: CanvasFormat> Default for Canvas<W, H, T, F> {
     fn default() -> Self {
-        let pixels = [[Color::<f64>::default(); W]; H];
-        Self { pixels }
+        let mut pixels: Vec<Color<T>> = Vec::with_capacity(W * H);
+        for _ in 0..W * H {
+            pixels.push(Color::default())
+        }
+        Self {
+            pixels,
+            _format: PhantomData,
+        }
     }
 }
 
@@ -50,7 +72,7 @@ impl Display for CanvasIndexError {
 
 impl Error for CanvasIndexError {}
 
-impl<const W: usize, const H: usize> Canvas<W, H> {
+impl<const W: usize, const H: usize, T: Scalar, F: CanvasFormat> Canvas<W, H, T, F> {
     /// Returns the width of this [`Canvas`].
     pub fn width(&self) -> usize {
         W
@@ -64,9 +86,16 @@ impl<const W: usize, const H: usize> Canvas<W, H> {
     /// Returns a reference to the pixels of this [`Canvas`].
 
     /// Returns a pixel of the canvas at `(x,y)`.
-    pub fn pixel_at(&self, x: usize, y: usize) -> Option<Color<f64>> {
+    pub fn pixel_at(&self, x: usize, y: usize) -> Option<&Color<T>> {
         if y < H && x < W {
-            Some(self.pixels[y][x])
+            Some(self.pixels.get(y * W + x).unwrap())
+        } else {
+            None
+        }
+    }
+    fn mut_pixel_at(&mut self, x: usize, y: usize) -> Option<&mut Color<T>> {
+        if y < H && x < W {
+            Some(self.pixels.get_mut(y * W + x).unwrap())
         } else {
             None
         }
@@ -84,19 +113,16 @@ impl<const W: usize, const H: usize> Canvas<W, H> {
         &mut self,
         x: usize,
         y: usize,
-        color: Color<f64>,
+        color: Color<T>,
     ) -> Result<(), CanvasIndexError> {
-        let pixel = self
-            .pixels
-            .get_mut(y)
-            .ok_or_else(|| CanvasIndexError::new(x, y, W, H))?
-            .get_mut(x)
+        let pixel: &mut Color<T> = self
+            .mut_pixel_at(x, y)
             .ok_or_else(|| CanvasIndexError::new(x, y, W, H))?;
         *pixel = color;
         Ok(())
     }
 
-    pub fn pixels(&self) -> [[Color<f64>; W]; H] {
-        self.pixels
+    pub fn pixels(&self) -> &[Color<T>] {
+        &self.pixels
     }
 }
