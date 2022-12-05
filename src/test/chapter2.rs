@@ -16,7 +16,7 @@ mod canvas_test {
         features::{
             canvas::{
                 ppm_canvas::{PPMCanvas, PPMColor},
-                Canvas, CanvasIndexError,
+                CanvasIndexError, RawCanvas,
             },
             colors::Color,
         },
@@ -27,16 +27,15 @@ mod canvas_test {
 
     #[test]
     fn create_canvas() {
-        let canvas: Canvas<900, 550> = Canvas::default();
-        for row in canvas.pixels() {
-            for p in row {
-                assert_relative_eq!(p, Color::<f64>::default())
-            }
+        let canvas: RawCanvas<90, 55, f64> = RawCanvas::default();
+        println!("{}", canvas.height());
+        for &p in canvas.pixels() {
+            assert_relative_eq!(p, Color::<f64>::default())
         }
     }
     #[test]
     fn writing_pixel() {
-        let mut canvas: Canvas<10, 20> = Canvas::default();
+        let mut canvas: RawCanvas<10, 20, f64> = RawCanvas::default();
         let red = Color::new(1.0, 0.0, 0.0);
         canvas.write_pixel(2, 3, Color::new(1.0, 0.0, 0.0)).unwrap();
         assert_relative_eq!(red, canvas.pixel_at(2, 3).unwrap());
@@ -49,22 +48,20 @@ mod canvas_test {
 
     #[test]
     fn to_ppm_canvas() {
-        let mut canvas: Canvas<10, 2> = Canvas::default();
+        let mut canvas: RawCanvas<10, 2, f64> = RawCanvas::default();
         for x in 0..10 {
             for y in 0..2 {
                 canvas.write_pixel(x, y, Color::new(1.0, 0.8, 0.6)).unwrap();
             }
         }
         let ppm_canvas: PPMCanvas<10, 2> = canvas.into();
-        for row in ppm_canvas.pixels() {
-            for p in row {
-                assert_eq!(p, PPMColor(Color::new(255_u8, 204_u8, 153_u8)))
-            }
+        for &p in ppm_canvas.pixels() {
+            assert_eq!(p, PPMColor::new(255_u8, 204_u8, 153_u8))
         }
     }
     #[test]
     fn split_long_lines() {
-        let mut canvas: Canvas<10, 2> = Canvas::default();
+        let mut canvas: RawCanvas<10, 2, f64> = RawCanvas::default();
         for x in 0..10 {
             for y in 0..2 {
                 canvas.write_pixel(x, y, Color::new(1.0, 0.8, 0.6)).unwrap();
@@ -101,15 +98,22 @@ mod canvas_test {
         let gravity = Vector3::new(0.0, -0.1, 0.0);
         let wind = Vector3::new(-0.01, 0.0, 0.0);
         let e = Environment { gravity, wind };
-        let mut canvas: Canvas<400, 320> = Canvas::default();
+        const WIDTH: usize = 900;
+        const HEIGHT: usize = 550;
+        let mut canvas: RawCanvas<WIDTH, HEIGHT, f64> = RawCanvas::default();
         let p_color = Color::new(1.0, 0.0, 0.0);
-        canvas.write_pixel(0, 550 - 1, p_color).unwrap();
-        while p.pos.y > 0.0 && p.pos.x < 400.0 && p.pos.y < 320.0 {
+        canvas.write_pixel(0, canvas.height() - 1, p_color).unwrap();
+        while p.pos.y > 0.0 {
             p = tick(p, &e);
-            let (cp_x, cp_y) = (p.pos.x as usize, canvas.height() - p.pos.y as usize);
-            canvas.write_pixel(cp_x, cp_y, p_color).unwrap();
+            if (p.pos.x as usize) < WIDTH && (p.pos.y as usize) < HEIGHT {
+                let cp_x = p.pos.x as usize;
+                let cp_y = (canvas.height() - 1) as f64 - p.pos.y;
+                if cp_y > 0.0 && (cp_y as usize) < canvas.height() {
+                    canvas.write_pixel(cp_x, cp_y as usize, p_color).unwrap();
+                }
+            }
         }
-        let ppm_canvas: PPMCanvas<400, 320> = canvas.into();
+        let ppm_canvas: PPMCanvas<WIDTH, HEIGHT> = canvas.into();
         fs::write("chapter2_proj_draw.ppm", format!("{}", ppm_canvas)).unwrap();
     }
 }
