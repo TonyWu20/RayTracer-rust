@@ -20,6 +20,8 @@ pub use features::linalg::{
     vector::{Vector, Vector3},
 };
 
+pub use features::canvas::{ppm_canvas::PPMCanvas, RawCanvas};
+
 /// A scalar type in the context of this library, following `lina`.
 /// This is implemented for at least these types:
 ///
