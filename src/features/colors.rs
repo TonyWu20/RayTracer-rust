@@ -1,20 +1,10 @@
 use std::ops::{Add, AddAssign, Deref, DerefMut, Div, Mul, MulAssign, Sub, SubAssign};
 
-use crate::Float;
+use crate::{Float, Scalar};
 use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 use bytemuck::{Pod, Zeroable};
 
 use super::linalg::tuple::Tuple;
-
-#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
-#[repr(transparent)]
-pub struct Color<T: Float>(pub(crate) Tuple<T, 3>);
-
-impl<T: Float> Color<T> {
-    pub fn new(r: T, g: T, b: T) -> Self {
-        Self(Tuple::from([r, g, b]))
-    }
-}
 
 #[cfg(test)]
 mod test {
@@ -30,12 +20,23 @@ mod test {
         assert_relative_eq!(c1 * c2, Color::new(0.9, 0.2, 0.04));
     }
 }
+
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
+#[repr(transparent)]
+pub struct Color<T: Scalar>(pub(crate) Tuple<T, 3>);
+
+impl<T: Scalar> Color<T> {
+    pub fn new(r: T, g: T, b: T) -> Self {
+        Self(Tuple::from([r, g, b]))
+    }
+}
+
 // `Zeroable` impls for "Color" types are sound:
 //
 // - They are inhabited: structs plus bound `T: Zeroable`.
 // - They only consists of `Zeroable` fields, thus zero bit pattern is fine.
-unsafe impl<T: Float + Zeroable> Zeroable for Color<T> {}
-unsafe impl<T: Float + Zeroable> Zeroable for RgbView<T> {}
+unsafe impl<T: Scalar + Zeroable> Zeroable for Color<T> {}
+unsafe impl<T: Scalar + Zeroable> Zeroable for RgbView<T> {}
 
 // `Pod` impls for "Color" types are sound:
 //
@@ -46,8 +47,8 @@ unsafe impl<T: Float + Zeroable> Zeroable for RgbView<T> {}
 // - "The type needs to be `repr(C)` or `repr(transparent)`": trivially true.
 //
 // [1] https://doc.rust-lang.org/reference/type-layout.html#reprc-structs
-unsafe impl<T: Float + Pod> Pod for Color<T> {}
-unsafe impl<T: Float + Pod> Pod for RgbView<T> {}
+unsafe impl<T: Scalar + Pod> Pod for Color<T> {}
+unsafe impl<T: Scalar + Pod> Pod for RgbView<T> {}
 
 /// Helper struct giving access to the individual components of a 3D
 /// tuple.
@@ -58,7 +59,7 @@ pub struct RgbView<T> {
     pub b: T,
 }
 /// Enable access by `.r`, `.g` and `.b`
-impl<T: Float> Deref for Color<T> {
+impl<T: Scalar> Deref for Color<T> {
     type Target = RgbView<T>;
 
     fn deref(&self) -> &Self::Target {
@@ -66,13 +67,13 @@ impl<T: Float> Deref for Color<T> {
     }
 }
 
-impl<T: Float> DerefMut for Color<T> {
+impl<T: Scalar> DerefMut for Color<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         bytemuck::cast_mut(self)
     }
 }
 
-impl<T: Float> Default for Color<T> {
+impl<T: Scalar> Default for Color<T> {
     fn default() -> Self {
         Self(Tuple([(); 3].map(|_| T::zero())))
     }
@@ -129,7 +130,7 @@ where
     }
 }
 
-impl<T: Float> Add for Color<T> {
+impl<T: Scalar> Add for Color<T> {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -139,7 +140,7 @@ impl<T: Float> Add for Color<T> {
     }
 }
 
-impl<T: Float> AddAssign for Color<T> {
+impl<T: Scalar> AddAssign for Color<T> {
     fn add_assign(&mut self, rhs: Self) {
         let Self(tc1) = self;
         let Self(tc2) = rhs;
@@ -147,7 +148,7 @@ impl<T: Float> AddAssign for Color<T> {
     }
 }
 
-impl<T: Float> Sub for Color<T> {
+impl<T: Scalar> Sub for Color<T> {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -157,7 +158,7 @@ impl<T: Float> Sub for Color<T> {
     }
 }
 
-impl<T: Float> SubAssign for Color<T> {
+impl<T: Scalar> SubAssign for Color<T> {
     fn sub_assign(&mut self, rhs: Self) {
         let Self(tc1) = self;
         let Self(tc2) = rhs;
@@ -165,20 +166,21 @@ impl<T: Float> SubAssign for Color<T> {
     }
 }
 
-impl<T: Float> Mul<T> for Color<T> {
+impl<T: Scalar> Mul<T> for Color<T> {
     type Output = Self;
 
     fn mul(self, rhs: T) -> Self::Output {
         Self(self.0 * rhs)
     }
 }
-impl<T: Float> MulAssign<T> for Color<T> {
+impl<T: Scalar> MulAssign<T> for Color<T> {
     fn mul_assign(&mut self, rhs: T) {
         let Self(tc1) = self;
         *tc1 *= rhs;
     }
 }
 /// Hadamard product for `Color` * `Color`
+/// Only viable when the `T` is `Float`
 impl<T: Float> Mul<Color<T>> for Color<T> {
     type Output = Color<T>;
 
@@ -187,10 +189,27 @@ impl<T: Float> Mul<Color<T>> for Color<T> {
     }
 }
 
-impl<T: Float> Div<T> for Color<T> {
+impl<T: Scalar> Div<T> for Color<T> {
     type Output = Color<T>;
 
     fn div(self, rhs: T) -> Self::Output {
         Self(self.0 / rhs)
+    }
+}
+
+impl From<Color<f64>> for Color<u8> {
+    fn from(src: Color<f64>) -> Self {
+        let Color(Tuple(t)) = src;
+        let new_color: Vec<u8> = t
+            .iter()
+            .map(|&c| {
+                // Throughout various color operations, the value may
+                // exceeds 1.0, but never becomes negative.
+                let c_clamped = if c > 1.0 { 1.0 } else { c };
+                (c_clamped * 255.0) as u8
+            })
+            .collect();
+        let new_color: [u8; 3] = new_color.try_into().unwrap();
+        Self(Tuple::from(new_color))
     }
 }
