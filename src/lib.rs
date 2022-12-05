@@ -12,6 +12,8 @@ extern crate approx;
 
 pub mod docs;
 pub mod features;
+#[cfg(test)]
+mod test;
 
 pub use features::linalg::{
     point::{Point, Point3},
