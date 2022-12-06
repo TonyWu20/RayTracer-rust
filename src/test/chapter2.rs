@@ -70,6 +70,14 @@ mod canvas_test {
         let ppm_canvas: PPMCanvas<10, 2> = canvas.into();
         println!("{}", ppm_canvas);
         fs::write("test_ppm.ppm", format!("{}", ppm_canvas)).unwrap();
+        std::process::Command::new("convert")
+            .args(["test_ppm.ppm", "test_ppm.png"])
+            .output()
+            .expect("Imagemagick invoke failed");
+        std::process::Command::new("rm")
+            .arg("test_ppm.ppm")
+            .output()
+            .expect("error executing 'rm test_ppm.ppm'");
     }
     struct Projectile {
         pos: Point3<f64>,
@@ -115,5 +123,13 @@ mod canvas_test {
         }
         let ppm_canvas: PPMCanvas<WIDTH, HEIGHT> = canvas.into();
         fs::write("chapter2_proj_draw.ppm", format!("{}", ppm_canvas)).unwrap();
+        std::process::Command::new("convert")
+            .args(["chapter2_proj_draw.ppm", "chapter2_proj_draw.png"])
+            .output()
+            .expect("Imagemagick invoke failed");
+        std::process::Command::new("rm")
+            .arg("chapter2_proj_draw.ppm")
+            .output()
+            .expect("error executing 'rm chapter2_proj_draw.ppm'");
     }
 }
