@@ -83,22 +83,26 @@ impl<const W: usize, const H: usize, T: Scalar, F: CanvasFormat> Canvas<W, H, T,
         H
     }
 
-    /// Returns a reference to the pixels of this [`Canvas`].
-
-    /// Returns a pixel of the canvas at `(x,y)`.
-    pub fn pixel_at(&self, x: usize, y: usize) -> Option<&Color<T>> {
+    /// Validates the input `(x, y)`
+    #[inline]
+    fn validate_xy(&self, x: usize, y: usize) -> Result<usize, CanvasIndexError> {
         if y < H && x < W {
-            Some(self.pixels.get(y * W + x).unwrap())
+            // The 2D-index is valid, both `x` and `y` are within the range of `WIDTH` and `HEIGHT`
+            Ok(y * W + x) // Calculates the index at 1D-array
         } else {
-            None
+            Err(CanvasIndexError::new(x, y, W, H))
         }
     }
-    fn mut_pixel_at(&mut self, x: usize, y: usize) -> Option<&mut Color<T>> {
-        if y < H && x < W {
-            Some(self.pixels.get_mut(y * W + x).unwrap())
-        } else {
-            None
-        }
+
+    /// Returns a pixel of the canvas at `(x,y)`.
+    pub fn pixel_at(&self, x: usize, y: usize) -> Result<&Color<T>, CanvasIndexError> {
+        let idx = self.validate_xy(x, y)?;
+        Ok(self.pixels.get(idx).unwrap())
+    }
+    /// Returns a mut reference of a pixel of the canvas at `(x,y)`
+    fn mut_pixel_at(&mut self, x: usize, y: usize) -> Result<&mut Color<T>, CanvasIndexError> {
+        let idx = self.validate_xy(x, y)?;
+        Ok(self.pixels.get_mut(idx).unwrap())
     }
 
     /// Writes a pixel to the canvas.
@@ -115,9 +119,7 @@ impl<const W: usize, const H: usize, T: Scalar, F: CanvasFormat> Canvas<W, H, T,
         y: usize,
         color: Color<T>,
     ) -> Result<(), CanvasIndexError> {
-        let pixel: &mut Color<T> = self
-            .mut_pixel_at(x, y)
-            .ok_or_else(|| CanvasIndexError::new(x, y, W, H))?;
+        let pixel: &mut Color<T> = self.mut_pixel_at(x, y)?;
         *pixel = color;
         Ok(())
     }
